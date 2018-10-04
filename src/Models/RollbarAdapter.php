@@ -42,8 +42,8 @@ class RollbarAdapter
         $context = array_merge(['logs' => $logEntries], $opContext);
 
         if ($this->rollbar) {
-            //$this->rollbar->report_message($message, $level, $context);
-            //$this->rollbar->flush();
+            $this->rollbar->report_message($message, $level, $context);
+            $this->rollbar->flush();
         } else {
             // this is just for testing so we don't want to send this log message back through
             // the operational log handler at this point.
