@@ -1,6 +1,6 @@
 <?php
 
-namespace MVuoncino\OpLog\OperationalLogging\Models;
+namespace MVuoncino\OpLog\Models;
 
 use Monolog\Handler\AbstractProcessingHandler;
 

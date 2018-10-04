@@ -1,8 +1,8 @@
 <?php
 
-namespace MVuoncino\OpLog\OperationalLogging\Filters;
+namespace MVuoncino\OpLog\Filters;
 
-use MVuoncino\OpLog\OperationalLogging\Models\OperationalLog;
+use MVuoncino\OpLog\Models\OperationalLog;
 
 class AfterFilter
 {

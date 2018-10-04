@@ -1,8 +1,8 @@
 <?php
 
-namespace MVuoncino\OpLog\OperationalLogging\Models;
+namespace MVuoncino\OpLog\Models;
 
-use MVuoncino\OpLog\OperationalLogging\Contracts\OperationalLogInterface as OL;
+use MVuoncino\OpLog\Contracts\OperationalLogInterface as OL;
 use Monolog\Logger;
 use RollbarNotifier;
 

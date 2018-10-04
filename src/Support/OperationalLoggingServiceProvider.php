@@ -1,14 +1,16 @@
 <?php
 
-namespace MVuoncino\OpLog\OperationalLogging\Support;
+namespace MVuoncino\OpLog\Support;
 
 use App;
 use Config;
 use Illuminate\Support\ServiceProvider;
 use Log;
-use MVuoncino\OpLog\OperationalLogging\Models\OperationalLog;
-use MVuoncino\OpLog\OperationalLogging\Models\OperationalLogHandler;
-use MVuoncino\OpLog\OperationalLogging\Models\RollbarAdapter;
+use MVuoncino\OpLog\Filters\AfterFilter;
+use MVuoncino\OpLog\Filters\BeforeFilter;
+use MVuoncino\OpLog\Models\OperationalLog;
+use MVuoncino\OpLog\Models\OperationalLogHandler;
+use MVuoncino\OpLog\Models\RollbarAdapter;
 use RollbarNotifier;
 
 class OperationalLoggingServiceProvider extends ServiceProvider
@@ -21,6 +23,9 @@ class OperationalLoggingServiceProvider extends ServiceProvider
         if (\Config::get('oplog::enabled', false)) {
             $opLog = self::getOperationalLogHandler();
             Log::getMonolog()->pushHandler($opLog);
+
+            App::before(BeforeFilter::class);
+            App::after(AfterFilter::class);
         }
     }
 

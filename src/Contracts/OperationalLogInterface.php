@@ -1,6 +1,6 @@
 <?php
 
-namespace MVuoncino\OpLog\OperationalLogging\Contracts;
+namespace MVuoncino\OpLog\Contracts;
 
 interface OperationalLogInterface
 {

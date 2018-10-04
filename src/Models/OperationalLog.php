@@ -1,11 +1,11 @@
 <?php
 
-namespace MVuoncino\OpLog\OperationalLogging\Models;
+namespace MVuoncino\OpLog\Models;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Monolog\Logger;
-use MVuoncino\OpLog\OperationalLogging\Contracts\ExtractorInterface;
+use MVuoncino\OpLog\Contracts\ExtractorInterface;
 
 class OperationalLog
 {
