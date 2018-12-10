@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Monolog\Logger;
 use MVuoncino\OpLog\Contracts\ExtractorInterface;
+use MVuoncino\OpLog\Contracts\OperationalLogInterface;
 
 class OperationalLog
 {
@@ -83,6 +84,10 @@ class OperationalLog
         );
         // the goal of this is to encourage us to fix warnings since, by definition, they mean something
         // wasn't quite right.  If they happen all the time, it's an issue.
+        if (array_key_exists(OperationalLogInterface::TAG_OPLEVEL, $record['context'])) {
+            $this->hasError = true;
+            $this->messages[] = $record['message'];
+        }
         if ($record['level'] >= Logger::WARNING) {
             $this->hasError = true;
         }
