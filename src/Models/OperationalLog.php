@@ -8,7 +8,6 @@ use Monolog\Logger;
 use MVuoncino\OpLog\Contracts\ExtractorInterface;
 use MVuoncino\OpLog\Contracts\OperationalLogInterface;
 use MVuoncino\OpLog\Contracts\ResponseParserInterface;
-use Psr\Log\LogLevel;
 
 class OperationalLog
 {
@@ -40,7 +39,7 @@ class OperationalLog
     /**
      * @var string[][]
      */
-    private $messages;
+    private $messages = [];
 
     /**
      * @var array
