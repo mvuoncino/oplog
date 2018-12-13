@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Monolog\Logger;
 use MVuoncino\OpLog\Contracts\ExtractorInterface;
 use MVuoncino\OpLog\Contracts\OperationalLogInterface;
+use MVuoncino\OpLog\Contracts\ResponseParserInterface;
+use Psr\Log\LogLevel;
 
 class OperationalLog
 {
@@ -36,14 +38,9 @@ class OperationalLog
     private $endpoint;
 
     /**
-     * @var string[]
+     * @var string[][]
      */
     private $messages;
-
-    /**
-     * @var bool
-     */
-    private $hasError = false;
 
     /**
      * @var array
@@ -56,6 +53,16 @@ class OperationalLog
     private $extractors;
 
     /**
+     * @var ResponseParserInterface
+     */
+    private $responseParser;
+
+    /**
+     * @var array
+     */
+    private $exclusions;
+
+    /**
      * OperationalLog constructor.
      * @param $name
      */
@@ -63,6 +70,22 @@ class OperationalLog
     {
         $this->rollbarAdapter = $rollbarAdapter;
         $this->name = $name;
+    }
+
+    /**
+     * @param array $exclusionConfig
+     */
+    public function addExclusion($route, array $exclusionConfig)
+    {
+        $this->exclusions[$route] = $exclusionConfig;
+    }
+
+    /**
+     * @param ResponseParserInterface $responseParser
+     */
+    public function setResponseParser(ResponseParserInterface $responseParser)
+    {
+        $this->responseParser = $responseParser;
     }
 
     /**
@@ -85,15 +108,10 @@ class OperationalLog
         // the goal of this is to encourage us to fix warnings since, by definition, they mean something
         // wasn't quite right.  If they happen all the time, it's an issue.
         if (array_key_exists(OperationalLogInterface::TAG_OPLEVEL, $record['context'])) {
-            $this->hasError = true;
-            $this->messages[] = $record['message'];
+            $this->messages[$record['context'][OperationalLogInterface::TAG_OPLEVEL]][] = $record['message'];
         }
         if ($record['level'] >= Logger::WARNING) {
-            $this->hasError = true;
-        }
-        if ($record['level'] >= Logger::ERROR) {
-            // note all bona-fide errors in the message text for rollbar
-            $this->messages[] = $record['message'];
+            $this->messages[$record['level']][] = $record['message'];
         }
     }
 
@@ -120,9 +138,18 @@ class OperationalLog
             $this->extractOperationalData($queryParts)
         );
 
-        if ($response->getStatusCode() >= 400) {
+        if (
+            ($response->getStatusCode() >= 400) &&
+            (
+                !array_key_exists($this->endpoint, $this->exclusions) ||
+                !in_array($response->getStatusCode(), $this->exclusions[$this->endpoint])
+            )
+        ) {
+
+            $message = $this->responseParser ? $this->responseParser->parse($response) : 'Non-200 response returned to user';
+
             $this->log([
-                'message' => 'Non-200 response returned to user',
+                'message' => sprintf('[HTTP:%d] %s', $response->getStatusCode(), $message),
                 'context' => [
                     'method' => $request->getMethod(),
                     'uri' => $request->path(),
@@ -142,15 +169,28 @@ class OperationalLog
      */
     public function finalize()
     {
-        if ($this->hasError) {
+        if ($message = self::coalesceMessages($this->messages)) {
             if (strpos(php_sapi_name(), 'cli') !== false) {
                 $this->endpoint = array_get(\Request::instance()->server(), 'argv.1');
             }
-            if (!$this->messages) {
-                $this->messages = ['This endpoint had one or more warnings or worse'];
-            }
-            $this->rollbarAdapter->sendToRollbar($this->method, $this->endpoint, $this->messages, $this->opData, $this->records);
+            $this->rollbarAdapter->sendToRollbar($this->method, $this->endpoint, $message, $this->opData, $this->records);
         }
+    }
+
+    /**
+     * @param array $messages[][]
+     * @return string|null
+     */
+    protected static function coalesceMessages(array $messages)
+    {
+        foreach ([Logger::EMERGENCY, Logger::ALERT, Logger::CRITICAL, Logger::ERROR, Logger::WARNING] as $logLevel) {
+            if (count($messages[$logLevel]) == 1) {
+                return $messages[$logLevel];
+            } else if (count($messages[$logLevel]) > 0) {
+                return implode($messages[$logLevel], ' and ');
+            }
+        }
+        return null;
     }
 
     /**

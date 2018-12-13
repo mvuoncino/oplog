@@ -43,6 +43,14 @@ class OperationalLoggingServiceProvider extends ServiceProvider
                     $obj = $app->make($extractor);
                     $opLog->pushExtractor($obj);
                 }
+                $exclusions = \Config::get('oplog::exclude_from_filter');
+                foreach ($exclusions as $route => $exclusion) {
+                    $opLog->addExclusion($route, $exclusion);
+                }
+                $parser = \Config::get('oplog::response_parser', null);
+                if ($parser) {
+                    $opLog->setResponseParser(\App::make($parser));
+                }
                 App::shutdown(
                     function() use ($opLog) {
                         $opLog->finalize();
