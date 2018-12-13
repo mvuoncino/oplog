@@ -9,6 +9,20 @@ use RollbarNotifier;
 class RollbarAdapter
 {
     /**
+     * Map to rollbar levels from numeric
+     * @var array
+     */
+    private static $levelMap = [
+        100 => 'info',
+        200 => 'info',
+        300 => 'warning',
+        400 => 'error',
+        500 => 'critical',
+        600 => 'critical',
+        700 => 'critical',
+    ];
+
+    /**
      * @var RollbarNotifier $rollbar
      */
     protected $rollbar;
@@ -29,11 +43,10 @@ class RollbarAdapter
      * @param array $opContext
      * @param array $logEntries
      */
-    public function sendToRollbar($method, $endpoint, array $messages, array $opContext, array $logEntries)
+    public function sendToRollbar($method, $endpoint, $messageString, array $opContext, array $logEntries)
     {
         $level = max($opContext[OL::TAG_OPLEVEL]);
         $areas = implode('][', $opContext[OL::TAG_AREA]);
-        $messageString = implode(' and ', $messages);
 
         $message = sprintf("%s [%s][%s][%s]",
             $messageString, strtoupper($method), $endpoint, $areas
@@ -42,7 +55,8 @@ class RollbarAdapter
         $context = array_merge(['logs' => $logEntries], $opContext);
 
         if ($this->rollbar) {
-            $this->rollbar->report_message($message, $level, $context);
+            // convert log level to string for RB
+            $this->rollbar->report_message($message, self::$levelMap[$level], $context);
             $this->rollbar->flush();
         } else {
             // this is just for testing so we don't want to send this log message back through
