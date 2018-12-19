@@ -198,7 +198,7 @@ class OperationalLog
             if (!isset($messages[$logLevel])) {
                 continue;
             } else if (count($messages[$logLevel]) == 1) {
-                return $messages[$logLevel];
+                return $messages[$logLevel][0];
             } else if (count($messages[$logLevel]) > 0) {
                 return implode(array_unique($messages[$logLevel]), ' and ');
             }

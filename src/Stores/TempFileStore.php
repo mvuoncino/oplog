@@ -1,6 +1,6 @@
 <?php
 
-namespace MVuoncino\OpLog\Models;
+namespace MVuoncino\OpLog\Stores;
 
 use MVuoncino\OpLog\Contracts\StoreInterface;
 
@@ -24,8 +24,8 @@ class TempFileStore implements StoreInterface
      */
     public function store(array $record)
     {
-        fseek($this->tmp, SEEK_END);
-        $json = json_encode($record);
+        fseek($this->tmp, 0, SEEK_END);
+        $json = json_encode($record) . PHP_EOL;
         fwrite($this->tmp, $json, strlen($json));
     }
 
@@ -36,10 +36,15 @@ class TempFileStore implements StoreInterface
     {
         fseek($this->tmp, 0);
         while (($count--) && !feof($this->tmp)) {
-            yield fread($this->tmp, 65525);
+            $json = fgets($this->tmp, 65525);
+            $record = json_decode($json, true);
+            yield $record;
         }
     }
 
+    /**
+     * destructor
+     */
     public function __destruct()
     {
         fclose($this->tmp);
