@@ -8,9 +8,15 @@ use Monolog\Logger;
 use MVuoncino\OpLog\Contracts\ExtractorInterface;
 use MVuoncino\OpLog\Contracts\OperationalLogInterface;
 use MVuoncino\OpLog\Contracts\ResponseParserInterface;
+use MVuoncino\OpLog\Contracts\StoreInterface;
 
 class OperationalLog
 {
+    /**
+     * @var Request
+     */
+    private $request;
+
     /**
      * @var RollbarAdapter
      */
@@ -22,9 +28,9 @@ class OperationalLog
     private $name;
 
     /**
-     * @var array[]
+     * @var StoreInterface
      */
-    private $records;
+    private $store;
 
     /**
      * @var string
@@ -65,8 +71,10 @@ class OperationalLog
      * OperationalLog constructor.
      * @param $name
      */
-    public function __construct(RollbarAdapter $rollbarAdapter, $name)
+    public function __construct(Request $request, StoreInterface $store, RollbarAdapter $rollbarAdapter, $name)
     {
+        $this->request = $request;
+        $this->store = $store;
         $this->rollbarAdapter = $rollbarAdapter;
         $this->name = $name;
     }
@@ -100,7 +108,7 @@ class OperationalLog
      */
     public function log(array $record)
     {
-        $this->records[] = $record;
+        $this->store->store($record);
         $this->mergeOperationalData(
             $this->extractOperationalData($record)
         );
@@ -170,9 +178,13 @@ class OperationalLog
     {
         if ($message = self::coalesceMessages($this->messages)) {
             if (strpos(php_sapi_name(), 'cli') !== false) {
-                $this->endpoint = array_get(\Request::instance()->server(), 'argv.1');
+                $this->endpoint = array_get($this->request->server(), 'argv.1');
             }
-            $this->rollbarAdapter->sendToRollbar($this->method, $this->endpoint, $message, $this->opData, $this->records);
+            $records = [];
+            foreach ($this->store->fetch(1000) as $record) {
+                $records[] = $record;
+            }
+            $this->rollbarAdapter->sendToRollbar($this->method, $this->endpoint, $message, $this->opData, $records);
         }
     }
 
@@ -183,10 +195,12 @@ class OperationalLog
     protected static function coalesceMessages(array $messages)
     {
         foreach ([Logger::EMERGENCY, Logger::ALERT, Logger::CRITICAL, Logger::ERROR, Logger::WARNING] as $logLevel) {
-            if (count($messages[$logLevel]) == 1) {
-                return $messages[$logLevel];
+            if (!isset($messages[$logLevel])) {
+                continue;
+            } else if (count($messages[$logLevel]) == 1) {
+                return $messages[$logLevel][0];
             } else if (count($messages[$logLevel]) > 0) {
-                return implode($messages[$logLevel], ' and ');
+                return implode(array_unique($messages[$logLevel]), ' and ');
             }
         }
         return null;

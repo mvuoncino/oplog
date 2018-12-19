@@ -11,6 +11,9 @@ use MVuoncino\OpLog\Filters\BeforeFilter;
 use MVuoncino\OpLog\Models\OperationalLog;
 use MVuoncino\OpLog\Models\OperationalLogHandler;
 use MVuoncino\OpLog\Models\RollbarAdapter;
+use MVuoncino\OpLog\Stores\ArrayStore;
+use MVuoncino\OpLog\Stores\TempFileStore;
+use Request;
 use RollbarNotifier;
 
 class OperationalLoggingServiceProvider extends ServiceProvider
@@ -35,6 +38,8 @@ class OperationalLoggingServiceProvider extends ServiceProvider
             OperationalLog::class,
             function ($app, $params) {
                 $opLog = new OperationalLog(
+                    Request::instance(),
+                    new TempFileStore(),
                     $app->make(RollbarAdapter::class),
                     $this->app['env']
                 );
