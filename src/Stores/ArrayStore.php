@@ -24,7 +24,8 @@ class ArrayStore implements StoreInterface
      */
     public function fetch($count = 1000)
     {
-        for ($i = 0; $i < min($count, count($this->array)); ++$i) {
+        $limiter = min($count, count($this->array));
+        for ($i = 0; $i < $limiter; ++$i) {
             yield $this->array[$i];
         }
     }
